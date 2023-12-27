@@ -1,90 +1,109 @@
-# kaggle-titanic
-## Titanic Dataset Analysis and Model Exploration
+# Titanic Survival Analysis
 
-### Introduction
-This notebook is a comprehensive exploration of the Titanic dataset. The primary focus is on data analysis, visualization, and applying various machine learning models to predict survival rates.
+## Introduction
+This project focuses on analyzing the Titanic dataset to identify factors influencing passenger survival. Utilizing various data science techniques, we aim to build a predictive model to estimate survival outcomes based on passenger characteristics.
 
-### Libraries Used
-The following Python libraries are used in this notebook:
-- NumPy
-- pandas
-- Matplotlib
-- seaborn
-```python
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-%matplotlib inline
-```
-
-### Strategy
-The approach taken in this analysis involves several steps:
-1. Splitting the training data into two datasets: `real_train` and `test_train`.
-2. Training different models using `real_train` and testing the models on `test_train`.
-3. Retraining the best model on the full `real_train` dataset.
-4. Using the final model to test on `test_final`.
+## Strategy
+Our approach involves splitting the dataset into two: `real_train` for model training and `test_train` for validation. This ensures robust model evaluation and tuning.
 
 ### Data Reading
-Data is read from a CSV file into a pandas DataFrame.
+The data is loaded using pandas:
 ```python
-train_data = pd.read_csv("data/train.csv")
-train_data.head()
+import pandas as pd
+data = pd.read_csv('titanic_data.csv')
 ```
 
-### Data Analysis
-Key factors explored in the analysis include:
-1. Impact of Gender on Survival Rate.
-2. Influence of Passenger Class (PClass) on Survival Rate.
-3. Effect of Age on Survival Rate.
-4. Relationship between Siblings/Spouses aboard (SibSp) and Survival Rate.
-5. Connection between Parents/Children aboard (Parch) and Survival Rate.
+## Data Analysis
+We conducted an exploratory analysis to understand the data and uncover patterns related to survival.
 
-### Model Exploration
-The following models are explored:
-- K-Nearest Neighbours
-- Decision Trees
-- Support Vector Machines
-- Neural Networks
-
-The process for each model includes:
-1. Duplicating dataset.
-2. Data pre-processing.
-3. Splitting dataset into training and testing sets.
-4. Training models using the training dataset.
-5. Applying the models on the testing data.
-6. Evaluating the performance of each model.
-
-### Special Considerations
-- **K-Nearest Neighbours (KNN):** Prior to applying KNN, the data is compressed using Principal Component Analysis (PCA) as KNN can only handle 2D data.
-
-### Code Snippets
-- Principal Component Analysis (PCA) is applied as follows:
+### Investigating Factors
+#### Gender Impact
+Analysis revealed a significant correlation between gender and survival:
 ```python
-PCA = real_train.copy()
+data.groupby('Sex')['Survival'].mean().plot(kind='bar')
 ```
-- Conversion functions for categorical data:
+
+#### Class Impact
+Passenger class also showed a noticeable effect on survival rates:
 ```python
-def Sex_to_Num(row):
-    if (row.Sex == "male"): return 1
-    elif (row.Sex == "female"): return 0
-    else: return row.Sex
-
-PCA["Sex"] = PCA.apply(Sex_to_Numaxis=1)
-
-def Cabin_to_Number(row):
-    if (not pd.isna(row.Cabin)):
-        return ord(row.Cabin[0])
-    else: return 0
-
-PCA["Cabin"] = PCA.apply(Cabin_to_Numberaxis=1)
+data.groupby('Pclass')['Survival'].mean().plot(kind='bar')
 ```
-- Machine Learning libraries used for PCA:
+
+#### Age Impact
+Age's role was explored, highlighting varying survival rates across age groups:
 ```python
-from sklearn.datasets import make_blobs
+data.groupby(pd.cut(data['Age'], bins=5))['Survival'].mean().plot(kind='bar')
+```
+
+## Model Exploration
+We experimented with multiple models to find the best predictor of survival.
+
+### K-Nearest Neighbours (KNN)
+We compressed data using PCA before applying KNN:
+```python
+from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
+
+pca = PCA(n_components=2)
+transformed_data = pca.fit_transform(data)
+
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(transformed_data, data['Survival'])
 ```
 
-### Conclusion
-This notebook provides an in-depth analysis of the Titanic dataset using various statistical and machine learning techniques. The models are evaluated to determine their effectiveness in predicting survival rates based on the available data.
+### Decision Trees
+#### Single Tree Analysis
+We analyzed the effectiveness of a single decision tree.
+```python
+from sklearn.tree import DecisionTreeClassifier
+
+tree = DecisionTreeClassifier(max_depth=5)
+tree.fit(train_data, train_labels)
+```
+
+#### Random Forest
+Random Forests were used with parameter tuning for better accuracy.
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+forest = RandomForestClassifier(n_estimators=100, max_depth=5)
+forest.fit(train_data, train_labels)
+```
+
+### Neural Network
+Implemented a simple neural network using TensorFlow:
+```python
+import tensorflow as tf
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(10, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.fit(train_data, train_labels, epochs=10)
+```
+
+## Training the Final Model
+We selected the Random Forest model based on its performance and generalizability:
+```python
+final_model = RandomForestClassifier(n_estimators=100, max_depth=5)
+final_model.fit(real_train_data, real_train_labels)
+```
+
+## Generating Test Results
+Predictions on the test dataset were made using the final model:
+```python
+predictions = final_model.predict(test_train_data)
+```
+
+## Conclusion
+The analysis highlighted key factors like gender, class, and age in survival prediction. The Random Forest model provided the best balance of accuracy and generalizability.
+
+## Future Work
+Future enhancements could include integrating more features, trying advanced models, and using larger datasets for more robust predictions.
+
+## How to Run the Notebook
+1. Ensure Python and Jupyter Notebook are installed.
+2. Install necessary packages: `pandas`, `sklearn`, `matplotlib`, `tensorflow`.
+3. Run the notebook cell by cell to observe each step of the analysis and modeling.
